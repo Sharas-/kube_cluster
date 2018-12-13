@@ -1,0 +1,42 @@
+- hosts: all
+  remote_user: root
+  gather_facts: no
+  vars:
+   packages: [kubectl, kubeadm, kubelet, docker.io]
+
+  tasks:
+    - name: install python
+      raw: dpkg -S python-simplejson || (apt-get update && apt-get install -y python-simplejson)
+      changed_when: false
+
+    - name: add gpg key for kubernetes repo
+      apt_key:
+       url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+       state: present
+  
+    - name: add kubernetes repo to apt
+      apt_repository:
+       repo: deb https://apt.kubernetes.io/ kubernetes-xenial main
+       state: present
+       filename: kubernetes
+  
+    - name: install kubernetes packages
+      apt:
+       name: "{{ packages }}"
+       state: present
+       update_cache: yes
+  
+    - name: enable docker service
+      service:
+        name: docker
+        enabled: yes
+        state: started
+        
+    - name: prevent kubernetes packages from being upgraded
+      dpkg_selections:
+       name: "{{ item }}"
+       selection: hold
+      with_items: "{{ packages }}"
+
+- import_playbook: create_cluster.yml
+

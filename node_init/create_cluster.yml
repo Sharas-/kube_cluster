@@ -1,0 +1,42 @@
+- hosts: master
+  remote_user: root
+  gather_facts: no
+
+  tasks:
+    - name: initialize master
+      shell: kubeadm init --pod-network-cidr=192.168.0.0/16
+      register: kube_init_result
+
+    - name: setup config file
+      shell: mkdir -p "{{ kube_dir }}" && cp /etc/kubernetes/admin.conf "{{ kube_dir }}"/config
+      vars: 
+       - kube_dir: "$HOME/.kube"
+      args:
+        warn: False
+
+    - name: install calico pod network
+      shell: >
+              kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml &&
+              kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml 
+
+    - debug: 
+        msg: "{{ kube_init_result.stdout_lines }}"
+
+    - set_fact:
+       node_join_cmd: "{{ kube_init_result.stdout_lines[-1] }}"
+       
+#--------------------------------------------------------------------------------
+
+- hosts: nodes
+  remote_user: root
+  gather_facts: no
+
+  tasks:
+
+  - name: add nodes to cluster
+    shell: "{{ hostvars[master_ip]['node_join_cmd'] }}"
+    register: node_join
+    vars: 
+     - master_ip: "{{ hostvars[inventory_hostname]['groups']['master'][0] }}"
+       
+  - debug: var=node_join.stdout_lines

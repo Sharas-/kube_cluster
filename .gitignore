@@ -1,0 +1,5 @@
+.terraform
+ansible-retry
+digital_ocean_token.tf
+terraform.tfstate
+terraform.tfstate.backup
