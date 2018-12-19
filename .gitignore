@@ -1,5 +1,5 @@
 .terraform
 ansible-retry
-digital_ocean_token.tf
+*token.tf
 terraform.tfstate
 terraform.tfstate.backup
